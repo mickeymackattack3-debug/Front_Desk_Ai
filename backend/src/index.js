@@ -8,6 +8,7 @@ import messageRoutes from './routes/message.js';
 import leadsRoutes from './routes/leads.js';
 import bookingsRoutes from './routes/bookings.js';
 import dashboardRoutes from './routes/dashboard.js';
+import businessesRoutes from './routes/businesses.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT || '3000');
@@ -38,6 +39,7 @@ async function main() {
   await app.register(leadsRoutes);
   await app.register(bookingsRoutes);
   await app.register(dashboardRoutes);
+  await app.register(businessesRoutes);
 
   // Serve static dashboard build (if exists)
   const dashboardDist = path.join(__dirname, '..', '..', 'dashboard', 'dist');

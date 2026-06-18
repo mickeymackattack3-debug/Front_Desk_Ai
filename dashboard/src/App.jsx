@@ -1,21 +1,30 @@
 import React, { useState, useEffect } from 'react';
+import SetupWizard from './pages/SetupWizard.jsx';
 
 const API = '';
 
 export default function App() {
-  const [page, setPage] = useState('dashboard');
+  const [page, setPage] = useState('setup');
   const [business, setBusiness] = useState(null);
   const [stats, setStats] = useState(null);
   const [leads, setLeads] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [error, setError] = useState('');
+  const [businesses, setBusinesses] = useState([]);
+  const [hasBusiness, setHasBusiness] = useState(false);
 
   useEffect(() => {
     fetch(`${API}/api/businesses`)
       .then(r => r.json())
       .then(bizes => {
+        setBusinesses(bizes);
         if (bizes.length > 0) {
+          setHasBusiness(true);
+          setPage('dashboard');
           loadData(bizes[0].id);
+        } else {
+          setHasBusiness(false);
+          setPage('setup');
         }
       })
       .catch(e => setError('Could not load businesses'));
@@ -41,6 +50,18 @@ export default function App() {
       .catch(() => {});
   }
 
+  function handleSetupComplete(biz) {
+    setHasBusiness(true);
+    setBusiness(biz);
+    setPage('dashboard');
+    loadData(biz.id);
+  }
+
+  function switchBusiness(businessId) {
+    setPage('dashboard');
+    loadData(businessId);
+  }
+
   function updateLeadStatus(id, status) {
     fetch(`${API}/api/leads/${id}`, {
       method: 'PATCH',
@@ -56,14 +77,39 @@ export default function App() {
       <nav style={styles.nav}>
         <div style={styles.navBrand}>🤖 FrontDesk AI</div>
         <div style={styles.navLinks}>
-          <button onClick={() => setPage('dashboard')} style={{...styles.navBtn, fontWeight: page === 'dashboard' ? 600 : 400}}>Dashboard</button>
-          <button onClick={() => setPage('leads')} style={{...styles.navBtn, fontWeight: page === 'leads' ? 600 : 400}}>Leads</button>
-          <button onClick={() => setPage('bookings')} style={{...styles.navBtn, fontWeight: page === 'bookings' ? 600 : 400}}>Bookings</button>
+          {hasBusiness && (
+            <>
+              <button onClick={() => setPage('dashboard')} style={{...styles.navBtn, fontWeight: page === 'dashboard' ? 600 : 400}}>Dashboard</button>
+              <button onClick={() => setPage('leads')} style={{...styles.navBtn, fontWeight: page === 'leads' ? 600 : 400}}>Leads</button>
+              <button onClick={() => setPage('bookings')} style={{...styles.navBtn, fontWeight: page === 'bookings' ? 600 : 400}}>Bookings</button>
+            </>
+          )}
+          <button onClick={() => setPage('setup')} style={{...styles.navBtn, fontWeight: page === 'setup' ? 600 : 400}}>
+            {hasBusiness ? '⚙️ Settings' : '🚀 Get Started'}
+          </button>
         </div>
+        {business && (
+          <div style={{ marginLeft: 'auto', fontSize: 13, color: '#9ca3af' }}>
+            {business.name}
+            <select
+              value={business?.id || ''}
+              onChange={e => switchBusiness(e.target.value)}
+              style={{ marginLeft: 8, padding: '4px 8px', borderRadius: 4, background: '#374151', color: 'white', border: '1px solid #4b5563', fontSize: 12 }}
+            >
+              {businesses.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </nav>
 
-      <main style={styles.main}>
-        {error && <div style={styles.error}>{error}</div>}
+      <main style={page === 'setup' ? { padding: 0 } : styles.main}>
+        {error && page !== 'setup' && <div style={styles.error}>{error}</div>}
+
+        {page === 'setup' && (
+          <SetupWizard onComplete={handleSetupComplete} />
+        )}
 
         {page === 'dashboard' && (
           <>
