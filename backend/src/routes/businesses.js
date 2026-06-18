@@ -4,7 +4,7 @@ import { v4 as uuid } from 'uuid';
 export default async function businessesRoutes(fastify) {
   // Create a new business (onboarding)
   fastify.post('/api/businesses', async (req, reply) => {
-    const { name, slug, email, phone, address, serviceCategories, settings } = req.body || {};
+    const { name, slug, email, phone, address, industry, serviceCategories, settings } = req.body || {};
 
     if (!name || !slug) {
       return reply.code(400).send({ error: 'Business name and slug are required' });
@@ -19,6 +19,8 @@ export default async function businessesRoutes(fastify) {
     }
 
     const id = uuid();
+    // Merge industry into settings
+    const mergedSettings = { ...(settings || {}), industry: industry || null };
     db.prepare(`
       INSERT INTO businesses (id, name, slug, email, phone, address, service_categories, settings)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -30,10 +32,11 @@ export default async function businessesRoutes(fastify) {
       phone || null,
       address || null,
       JSON.stringify(serviceCategories || []),
-      JSON.stringify(settings || { booking_enabled: true, auto_response: true })
+      JSON.stringify(mergedSettings)
     );
 
     const business = db.prepare('SELECT * FROM businesses WHERE id = ?').get(id);
+    const parsedSettings = JSON.parse(business.settings || '{}');
     return reply.code(201).send({
       id: business.id,
       name: business.name,
@@ -41,8 +44,10 @@ export default async function businessesRoutes(fastify) {
       email: business.email,
       phone: business.phone,
       address: business.address,
+      industry: parsedSettings.industry || null,
       serviceCategories: JSON.parse(business.service_categories || '[]'),
-      settings: JSON.parse(business.settings || '{}'),
+      settings: parsedSettings,
+      businessHours: JSON.parse(business.business_hours || '{}'),
       createdAt: business.created_at
     });
   });
